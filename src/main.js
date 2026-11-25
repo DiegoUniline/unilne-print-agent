@@ -8,7 +8,6 @@ const escpos = require('./escpos');
 // Mismo puerto que el agente anterior: Mamux ya lo busca aquí.
 const DEFAULT_PORT = 17891;
 // Mamux (y sus dominios) + localhost. El usuario puede cambiarlo en la ventana.
-const ORIGENES_MAMUX = 'https://mamu.mx, *.mamu.mx, https://rutapp.shop, *.rutapp.shop';
 const PX_PER_MM = 96 / 25.4;
 const MAX_BODY = 15 * 1024 * 1024;
 const DOTS_PER_MM = 8;
@@ -48,7 +47,6 @@ const DEFAULT_CONFIG = {
   copies: 1,
   forceBlack: true,
   autoStart: true,
-  allowedOrigins: ORIGENES_MAMUX,
 };
 
 let config = { ...DEFAULT_CONFIG };
@@ -101,7 +99,6 @@ function sanitize(c) {
   if ('copies' in c) out.copies = Math.round(num(c.copies, 1, 10, 1));
   if ('forceBlack' in c) out.forceBlack = !!c.forceBlack;
   if ('autoStart' in c) out.autoStart = !!c.autoStart;
-  if ('allowedOrigins' in c) out.allowedOrigins = String(c.allowedOrigins || '');
   if ('port' in c) out.port = Math.round(num(c.port, 1024, 65535, DEFAULT_PORT));
   return out;
 }
@@ -381,17 +378,11 @@ async function listPrinters() {
 
 /* ───────────── Servidor HTTP local ───────────── */
 
-function originAllowed(origin) {
-  if (origin) {
-    try {
-      if (['localhost', '127.0.0.1', '[::1]'].includes(new URL(origin).hostname)) return true;
-    } catch {
-      return false;
-    }
-  }
-  const list = config.allowedOrigins.split(/[\s,]+/).map((s) => s.trim().replace(/\/$/, '')).filter(Boolean);
-  if (!list.length || !origin) return true;
-  return list.some((o) => o === '*' || o === origin || (o.startsWith('*.') && origin.endsWith(o.slice(1))));
+/** Cualquier página puede pedir imprimir: el agente solo escucha en esta
+ * computadora (127.0.0.1) y únicamente imprime. Sin lista de orígenes que
+ * configurar (era la causa de "impresora no conectada"). */
+function originAllowed() {
+  return true;
 }
 
 function send(res, status, data, origin) {
