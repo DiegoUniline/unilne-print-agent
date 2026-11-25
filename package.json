@@ -1,7 +1,7 @@
 {
   "name": "mamux-print-agent",
   "productName": "Mamux Print Agent",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "Agente local de impresión directa de tickets para Mamux (USB, RAW, red y driver)",
   "author": "Uniline",
   "main": "src/main.js",

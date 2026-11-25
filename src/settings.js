@@ -1,5 +1,5 @@
 const $ = (id) => document.getElementById(id);
-const FIELDS = ['mode', 'printer', 'usbDevice', 'netHost', 'netPort', 'cut', 'drawer', 'threshold', 'paper', 'customWidthMm', 'printableMm', 'offsetMm', 'scale', 'copies', 'forceBlack', 'autoStart', 'port', 'allowedOrigins'];
+const FIELDS = ['mode', 'printer', 'usbDevice', 'netHost', 'netPort', 'cut', 'drawer', 'threshold', 'paper', 'customWidthMm', 'printableMm', 'offsetMm', 'scale', 'copies', 'forceBlack', 'autoStart', 'port'];
 let papers = {};
 
 function readForm() {
