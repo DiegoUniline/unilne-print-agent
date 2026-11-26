@@ -18,6 +18,7 @@ const MODES = {
   usb: 'ESC/POS USB directo',
   raw: 'ESC/POS a impresora instalada (RAW)',
   net: 'ESC/POS por red (IP)',
+  star: 'Star TSP100 (imagen Star, sin driver)',
 };
 
 const PAPERS = {
@@ -254,6 +255,7 @@ async function doPrint(html, overrides) {
 function escposTargetLabel(cfg) {
   if (cfg.mode === 'usb') return `USB ${cfg.usbDevice || '?'}`;
   if (cfg.mode === 'net') return `${cfg.netHost || '?'}:${cfg.netPort}`;
+  if (cfg.mode === 'star') return `Star ${cfg.printer || '?'}`;
   return `RAW ${cfg.printer || '?'}`;
 }
 
@@ -263,7 +265,8 @@ async function doPrintEscPos(html, cfg) {
   try {
     const spec = paperSpec(cfg).thermal ? paperSpec(cfg) : paperSpec({ ...cfg, paper: '80' });
     const raster = await renderRaster(html, cfg, spec);
-    const data = escpos.buildEscPos(raster, { cut: cfg.cut, drawer: cfg.drawer, copies: cfg.copies });
+    const opciones = { cut: cfg.cut, drawer: cfg.drawer, copies: cfg.copies };
+    const data = cfg.mode === 'star' ? escpos.buildStarRaster(raster, opciones) : escpos.buildEscPos(raster, opciones);
     if (cfg.mode === 'usb') {
       if (!cfg.usbDevice) throw new Error('Selecciona la impresora USB');
       await escpos.sendUsb(cfg.usbDevice, data);
@@ -434,14 +437,14 @@ async function handle(req, res) {
       printers,
       usb,
       impresoras: printers.map((p) => p.name),
-      actual: config.mode === 'driver' || config.mode === 'raw' ? config.printer || null : null,
+      actual: ['driver', 'raw', 'star'].includes(config.mode) ? config.printer || null : null,
     }, origin);
   }
   if (req.method === 'POST' && url.pathname === '/set-printer') {
     try {
       const body = JSON.parse(await readBody(req));
       if (typeof body.name !== 'string' || !body.name.trim()) return send(res, 400, { ok: false, error: 'Falta el nombre de la impresora' }, origin);
-      saveConfig({ printer: body.name.trim(), mode: config.mode === 'driver' || config.mode === 'raw' ? config.mode : (process.platform === 'win32' ? 'raw' : 'driver') });
+      saveConfig({ printer: body.name.trim(), mode: ['driver', 'raw', 'star'].includes(config.mode) ? config.mode : (process.platform === 'win32' ? 'raw' : 'driver') });
       settingsWin?.webContents.send('config', config);
       return send(res, 200, { ok: true, printer: config.printer }, origin);
     } catch (err) {
