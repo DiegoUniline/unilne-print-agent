@@ -28,6 +28,53 @@ function buildEscPos(raster, { cut = true, drawer = false, copies = 1, feedLines
   return Buffer.concat(parts);
 }
 
+/* ───────────── Star Graphic Mode (TSP100 / TSP143 futurePRNT) ─────────────
+ * Las TSP100 no entienden ESC/POS: solo imprimen imagen en "Star Graphic
+ * Mode". Secuencia tomada del driver CUPS oficial de Star (rastertostar.c):
+ *   ESC @ · ESC*rR ESC*rA (modo raster) · ESC*rP0 NUL (recibo continuo) ·
+ *   ESC*rD n NUL (cajón) · ESC*rF/E 13 NUL (corte parcial; 1 = sin corte) ·
+ *   NUL (inicio de página) · por renglón: 'b' n1 n2 datos (sin ceros al final)
+ *   o ESC*rY n NUL para renglones en blanco · ESC*rY1 NUL ESC FF (fin de página)
+ *   · EOT ESC*rB (fin de trabajo). Ancho máximo TSP100: 72 bytes (576 puntos). */
+const STAR_MAX_BYTES = 72;
+function starCmd(...parts) {
+  return Buffer.concat(parts.map((p) => (typeof p === 'string' ? Buffer.from(p, 'latin1') : Buffer.from(p))));
+}
+function buildStarRaster(raster, { cut = true, drawer = false, copies = 1 } = {}) {
+  const corte = cut ? '13' : '1';
+  const width = Math.min(raster.widthBytes, STAR_MAX_BYTES);
+  const parts = [
+    starCmd([ESC, 0x40]),
+    starCmd([ESC], '*rR', [ESC], '*rA'),
+    starCmd([ESC], '*rP0', [0]),
+    starCmd([ESC], `*rD${drawer ? '1' : '0'}`, [0]),
+    starCmd([ESC], `*rF${corte}`, [0]),
+    starCmd([ESC], `*rE${corte}`, [0]),
+  ];
+  for (let c = 0; c < copies; c++) {
+    parts.push(Buffer.from([0x00]));
+    let blancos = 0;
+    for (let y = 0; y < raster.height; y++) {
+      const row = raster.data.subarray(y * raster.widthBytes, y * raster.widthBytes + width);
+      let last = row.length - 1;
+      while (last >= 0 && row[last] === 0) last--;
+      if (last < 0) {
+        blancos++;
+        continue;
+      }
+      if (blancos > 0) {
+        parts.push(starCmd([ESC], `*rY${blancos}`, [0]));
+        blancos = 0;
+      }
+      const n = last + 1;
+      parts.push(Buffer.from([0x62, n & 0xff, n >> 8]), row.subarray(0, n));
+    }
+    parts.push(starCmd([ESC], '*rY1', [0, ESC, 0x0c]));
+  }
+  parts.push(starCmd([0x04, ESC], '*rB'));
+  return Buffer.concat(parts);
+}
+
 /** Convierte filas BGRA (ancho = dots) a raster monocromo, recortando blancos al final. */
 function rowsToRaster(bgraRows, dots, threshold) {
   const widthBytes = Math.ceil(dots / 8);
@@ -206,8 +253,15 @@ function sendRawWindows(printer, data) {
       { windowsHide: true, timeout: 30000 },
       (err, _stdout, stderr) => {
         fs.rm(dir, { recursive: true, force: true }, () => {});
-        if (err) reject(new Error((stderr || err.message).trim().split('\n')[0]));
-        else resolve();
+        if (err) {
+          const detalle = `${stderr || ''}\n${_stdout || ''}`
+            .split(/\r?\n/)
+            .map((l) => l.trim())
+            .filter((l) => l && !/^(En |At |\+ |CategoryInfo|FullyQualifiedErrorId|~)/.test(l))
+            .slice(0, 3)
+            .join(' · ');
+          reject(new Error(detalle || err.message.split('\n')[0]));
+        } else resolve();
       },
     );
   });
@@ -237,6 +291,7 @@ const PULSO_CAJON = Buffer.from([0x1b, 0x70, 0x00, 0x19, 0xfa]);
 
 module.exports = {
   buildEscPos,
+  buildStarRaster,
   rowsToRaster,
   listUsbPrinters,
   sendUsb,

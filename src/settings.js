@@ -25,11 +25,12 @@ const HINTS = {
   usb: 'Para impresoras térmicas conectadas por USB sin driver de Windows (como en Poster). Requiere driver WinUSB/libusbK.',
   raw: 'Recomendado. Envía el ticket de Mamux tal cual (ESC/POS) a la impresora instalada en el equipo, p. ej. la térmica o "Generic / Text Only".',
   net: 'Impresoras térmicas con cable de red o WiFi (puerto 9100).',
+  star: 'Para Star TSP100 / TSP143 (futurePRNT): manda el ticket como imagen en el lenguaje de Star, sin depender del driver. Elige la impresora Star instalada en Windows.',
 };
 
 function toggleMode() {
   const m = $('mode').value;
-  $('winWrap').classList.toggle('hidden', !['driver', 'raw'].includes(m));
+  $('winWrap').classList.toggle('hidden', !['driver', 'raw', 'star'].includes(m));
   $('usbWrap').classList.toggle('hidden', m !== 'usb');
   $('netWrap').classList.toggle('hidden', m !== 'net');
   $('escposWrap').classList.toggle('hidden', m === 'driver');
