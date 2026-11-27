@@ -34,6 +34,8 @@
   li .e{color:var(--err)}li .o{color:var(--ok)}
   code{font-size:12px}
   .hint{font-size:12px;color:var(--muted);margin:10px 0 0}
+  .detected{font-size:13px;margin:10px 0 0;padding:8px 10px;border-radius:8px;background:#f1ede6}
+  .detected b{color:var(--primary)}
 </style>
 </head>
 <body>
@@ -46,6 +48,15 @@
     <div id="winWrap" class="row" style="align-items:flex-end">
       <div><label for="printer">Impresora de Windows</label><select id="printer"></select></div>
       <button id="refresh" class="icon-btn" title="Actualizar lista">↻</button>
+    </div>
+    <div id="autoWrap">
+      <p id="detected" class="detected"></p>
+      <label for="language">Tipo de impresora</label>
+      <select id="language"></select>
+    </div>
+    <div id="driverSizeWrap">
+      <label for="driverPageSize">Tamaño de página con el driver</label>
+      <select id="driverPageSize"></select>
     </div>
     <div id="usbWrap" class="row" style="align-items:flex-end">
       <div><label for="usbDevice">Impresora USB (ESC/POS)</label><select id="usbDevice"></select></div>
