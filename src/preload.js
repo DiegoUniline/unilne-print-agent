@@ -7,6 +7,7 @@ contextBridge.exposeInMainWorld('agent', {
   getUsb: () => ipcRenderer.invoke('get-usb'),
   getStatus: () => ipcRenderer.invoke('get-status'),
   getJobs: () => ipcRenderer.invoke('get-jobs'),
+  resolveMode: (c) => ipcRenderer.invoke('resolve-mode', c),
   testPrint: (c) => ipcRenderer.invoke('test-print', c),
   onJobs: (cb) => ipcRenderer.on('jobs', (_e, j) => cb(j)),
   onStatus: (cb) => ipcRenderer.on('status', (_e, s) => cb(s)),

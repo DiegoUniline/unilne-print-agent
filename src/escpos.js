@@ -94,6 +94,19 @@ function rowsToRaster(bgraRows, dots, threshold) {
   return { widthBytes, height: end, data: Buffer.concat(packed.slice(0, end)) };
 }
 
+/** Imagen BGRA {width,height,data} -> raster monocromo, con margen izquierdo en puntos. */
+function bitmapToRaster(img, threshold, offsetDots = 0) {
+  const off = Math.max(0, Math.round(offsetDots));
+  const dots = img.width + off;
+  const rows = [];
+  for (let r = 0; r < img.height; r++) {
+    const row = Buffer.alloc(dots * 4, 0xff);
+    img.data.copy(row, off * 4, r * img.width * 4, (r + 1) * img.width * 4);
+    rows.push(row);
+  }
+  return rowsToRaster(rows, dots, threshold);
+}
+
 /* ───────────── Transportes ───────────── */
 
 let usbLib;
@@ -293,6 +306,7 @@ module.exports = {
   buildEscPos,
   buildStarRaster,
   rowsToRaster,
+  bitmapToRaster,
   listUsbPrinters,
   sendUsb,
   sendNet,
